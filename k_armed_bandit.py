@@ -1,3 +1,5 @@
+"""k-armed bandit for a stationary problem, using sample-average update rule"""
+
 import numpy as np
 import random
 

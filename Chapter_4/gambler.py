@@ -1,4 +1,4 @@
-"""Gambler's problem"""
+"""ex 4.9"""
 
 import numpy as np
 import gymnasium as gym

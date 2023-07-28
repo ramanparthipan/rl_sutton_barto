@@ -1,4 +1,4 @@
-from k_armed_bandit import *
+from Chapter_2.k_armed_bandit import *
 import numpy as np
 
 if __name__ == "__main__":

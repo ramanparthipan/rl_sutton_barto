@@ -1,4 +1,4 @@
-import ex4_9
+import gambler
 import numpy as np
 
 def run():

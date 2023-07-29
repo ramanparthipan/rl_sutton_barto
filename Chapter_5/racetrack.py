@@ -10,7 +10,8 @@ class RaceTrackEnv(gym.Env):
     min_velocity = 0
     max_velocity = 4
     
-    def __init__(self, track_file='tracks/test.txt', start_s=None) -> None:
+    
+    def __init__(self, track_file='tracks/test_1.txt', start_s=None) -> None:
         self.racetrack = np.fliplr(np.genfromtxt(track_file, delimiter=',', dtype=int).T) # loads track into a numpy array and transforms it accordingly so the x and y indices of the array match a cartesian coordinate system
         self.reset(start_s) # initialises the state
         self.observation_space = gym.spaces.MultiDiscrete(np.concatenate((self.racetrack.shape, np.array([self.max_velocity-self.min_velocity+1]*2))))
@@ -30,15 +31,15 @@ class RaceTrackEnv(gym.Env):
             path = np.array([self.racetrack[index] for index in path_index])
         except IndexError: # path goes off the canvas
             self.reset()
-            return -1, False
+            return self.s, -1, False, {}
         if (path == 0).any(): # path goes off track
             self.reset()
-            return -1, False
+            return self.s, -1, False, {}
         elif (path == 3).any(): # path reaches finish line legitimately
             idx = np.where(path == 3)[0][0]
             position = np.array(list(path_index)[idx])
-            self.s = np.concatenate((position, np.array([0, 0])))
-            return -1, True # new state is not necessary because of termination
+            self.s = np.concatenate((position, np.array([0, 0]))) # the final state before termination (useful for plotting)
+            return self.s, -1, True, {} # new state is not necessary because of termination
         else: # agent moves to new position
             position += velocity
         
@@ -46,7 +47,7 @@ class RaceTrackEnv(gym.Env):
         if (velocity == 0).all():
             velocity = np.array([0, 1]) # if both velocity components happen to be zero, arbitrarily set the velocity to be 1 upwards.
         self.s = np.concatenate((position, velocity))
-        return -1, False
+        return self.s, -1, False, {}
     
 
     def reset(self, start_s=None):
@@ -59,18 +60,25 @@ class RaceTrackEnv(gym.Env):
             position = np.array([x_idx[idx], y_idx[idx]])
             self.s = np.concatenate((position, np.array([0, 0])))
 
-    def render(self, episode):
+    def render(self):
+        """Renders the episode. Requires the attribute self.episode to be created for the RaceTrackEnv class before running"""
+        print(self.episode)
         track_plot = np.fliplr(self.racetrack).T
         plt.imshow(track_plot, cmap='cividis')
         plt.colorbar()
         plt.title('Agent track path for an episode')
 
-        pos_list = [np.unravel_index(rsa[1], self.observation_space.nvec)[:2]  for rsa in episode]
+        pos_list = [np.unravel_index(rsa[1], self.observation_space.nvec)[:2]  for rsa in self.episode]
         x_coords = [pos[0] for pos in pos_list]
         y_coords = [self.racetrack.shape[1] - 1 - pos[1] for pos in pos_list] # because points are plotted with origin at top left instead of bottom left, transform the y coordinates so they show up correctly
         plt.plot(x_coords, y_coords, color='red', marker='o')
         plt.plot(x_coords, y_coords, linestyle='-', linewidth=2)
         plt.show()
+        #By gym conventions, env.render() only takes self as a parameter, so make episode an attribute that is retrievable.
+        # The more conventional way is to render after each env.step(), but it is tricky to draw lines between the current and previous
+        # state because the previous state is not stored. Also, by convention, should add a 'render_modes' parameter to env.step() to determine
+        # how the episode should be rendered, e.g 'human', 'ansi', etc. See gymnasium.Env.render docs.
+        
         
 
 
@@ -97,6 +105,7 @@ class Agent():
                 G += episode[t][0]
             if (i % 10000) == 0:
                 print(f'iteration: {i}')
+        print('Finished')
         return pi, Q
 
 
@@ -107,17 +116,25 @@ class Agent():
         terminated = False
         r = 0
         episode = []
+        s = env.s
         while terminated == False:
-            s_rav = np.ravel_multi_index(env.s, env.observation_space.nvec)
+            s_rav = np.ravel_multi_index(s, env.observation_space.nvec)
             a_rav = np.random.choice(a_choices, p=pi[s_rav]) # ravel_multi_index takes s and returns its index for the ravelled 1d array, which is what is used for pi
             episode.append((r, s_rav, a_rav))
             a = np.array(np.unravel_index(a_rav, env.action_space.nvec)) - 1 # unravels back to the indices of a 3x3 matrix. Subtract one to achieve the desired acceleration values
-            r, terminated = env.step(a) # the new state is obtained from env.s
-        episode.append((r, np.ravel_multi_index(env.s, env.observation_space.nvec))) # final reward and state at termination
+            s, r, terminated, info = env.step(a) # this is the convention for what env.step() returns for a gym environment. info contains diagnostic data but this is empty in this case.
+            # env.step should also return 'truncated' as well, representing whether the episode stopped due to the agent leaving the state space, but this is not done here.
+        episode.append((r, np.ravel_multi_index(s, env.observation_space.nvec))) # final reward and state at termination
         
         if render == True:
-            env.render(episode)
+            setattr(RaceTrackEnv, 'episode', episode) # set episode attribute of RaceTrackEnv to episode. ie env.episode = episode
+            env.render()
         
         return episode
 
 
+gym.register(id='RaceTrackEnv-v0', 
+             entry_point='racetrack:RaceTrackEnv',
+             kwargs={'track_file':'tracks/test_1.txt', 'start_s':None},
+             )
+ 

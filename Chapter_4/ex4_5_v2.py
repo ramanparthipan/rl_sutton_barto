@@ -51,15 +51,6 @@ class JacksCarRental():
 
         r += 10*(np.minimum(s[0], permutation[0]) + np.minimum(s[1], permutation[1]))
 
-        # calculating the s_prime after returns is going to be finicky, because for each probability of rent requests,
-        # there will be another tree of probability for the returns.
-
-
-
-# after finishing the environment, policy iteration can be done. In particular, the state value functions for a policy, then the
-# action value functions, can be evaluated. Then a new policy can be chosen by choosing q(s, a) greedily.
-# With this problem, there are so many possible stochastic s_primes for an action, each with a different probability
-# of occurring, so I won't try implementing this further.  
 
 
 def run():

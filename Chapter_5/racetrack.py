@@ -74,7 +74,7 @@ class RaceTrackEnv(gym.Env):
         plt.plot(x_coords, y_coords, color='red', marker='o')
         plt.plot(x_coords, y_coords, linestyle='-', linewidth=2)
         plt.show()
-        #By gym conventions, env.render() only takes self as a parameter, so make episode an attribute that is retrievable.
+        # By gym conventions, env.render() only takes self as a parameter, so make episode an attribute that is retrievable.
         # The more conventional way is to render after each env.step(), but it is tricky to draw lines between the current and previous
         # state because the previous state is not stored. Also, by convention, should add a 'render_modes' parameter to env.step() to determine
         # how the episode should be rendered, e.g 'human', 'ansi', etc. See gymnasium.Env.render docs.

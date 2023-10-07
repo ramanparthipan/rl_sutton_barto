@@ -109,6 +109,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-
-
-#. There are bugs. Not working properly.
